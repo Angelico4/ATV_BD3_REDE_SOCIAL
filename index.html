@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>ATIVIDADE - REDE SOCIAL</title>
+    <link rel="stylesheet" href="./styles.css">
+</head>
+
+<body>
+    <!--Importação do JQuery-->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+
+    <div class="header_container">
+        <img src="./images/rede.png">
+        <h1>ATIVIDADE - REDE SOCIAL</h1>
+    </div>
+
+    <div class="button_post_container">
+        <button name="btn_post" id="btn_post">
+            POST
+        </button>
+    </div>
+
+    <div class="posts_container"></div>
+
+    <!-- ESTRUTURA HTML DO FORMULÁRIO MODAL: -->
+    <div id="myModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+
+            <div class="form_post_container">
+                <h4>FAÇA UM POST</h4>
+
+                <form name="frm_post" id="frm_post">
+                    <input
+                        type="text"
+                        name="txt_titulo"
+                        id="txt_titulo"
+                        placeholder="TITULO DO POST"
+                    >
+
+                    <br>
+
+                    <input
+                        type="text"
+                        name="txt_post"
+                        id="txt_post"
+                        placeholder="TEXTO DO POST"
+                    >
+
+                    <br>
+
+                    <button
+                        type="submit"
+                        name="btn_postar"
+                        id="btn_postar"
+                    >
+                        POSTAR
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket = io();
+
+        /***** ABERTURA/FECHAMENTO DO FORMUÁRIO MODAL *****/
+        let btn = document.getElementById('btn_post');
+        let modal = document.getElementById('myModal');
+        let span = document.getElementsByClassName('close')[0];
+
+        //Seleção dos outros elementos HTML
+        let form = document.getElementById('frm_post');
+        let postsContainer = document.querySelector('.posts_container');
+
+        //ABRE O FORMULÁRIO MODAL:
+        btn.addEventListener('click', function (event) {
+            event.preventDefault();
+            modal.style.display = 'block';
+        });
+
+        //FECHA O FORMULÁRIO MODAL:
+        span.addEventListener('click', function () {
+            modal.style.display = 'none';
+        });
+
+        //Função para Criação da estrutura HTML de cada Postagem
+        function renderPost(post) {
+            let postContainer = document.createElement('div');
+            let titulo = document.createElement('h2');
+            let texto = document.createElement('p');
+            let dataHora = document.createElement('small');
+
+            titulo.textContent = post.titulo;
+            texto.textContent = post.post;
+            dataHora.textContent = post.data_hora;
+
+            postContainer.appendChild(titulo);
+            postContainer.appendChild(texto);
+            postContainer.appendChild(dataHora);
+
+            postsContainer.appendChild(postContainer);
+        }
+
+        //Comunicação com o back para fazer a busca de mensagens anteriores
+        socket.on('previousMessage', function (posts) {
+            postsContainer.innerHTML = '';
+
+            //Para cada mensagem encontrada executa a função de criação acima
+            posts.forEach(function (post) {
+                renderPost(post);
+            });
+        });
+
+        //Comunicação com o bakc da mensagem recebida
+        socket.on('receivedMessage', function (post) {
+            renderPost(post);
+        });
+
+        //Função para envio de uma nova mensagem
+        form.addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            //Seleciona os dados escritos no post
+            let titulo = document.getElementById('txt_titulo').value;
+            let textoPost = document.getElementById('txt_post').value;
+
+            //Montagem dos dados
+            let data = {
+                titulo: titulo,
+                post: textoPost,
+                data_hora: new Date().toLocaleString('pt-BR')
+            };
+
+            //Comunicação com o back que vai enviar a mensagem
+            socket.emit('sendMessage', data);
+
+            //Apaga os campos e fecha o modal depois do envio
+            document.getElementById('txt_titulo').value = '';
+            document.getElementById('txt_post').value = '';
+
+            modal.style.display = 'none';
+        });
+    </script>
+</body>
+
+</html>
